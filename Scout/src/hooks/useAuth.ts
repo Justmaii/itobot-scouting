@@ -14,48 +14,43 @@ export const useAuth = () => {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
-      setFirebaseUser(user);
+      try {
+        setFirebaseUser(user);
 
-      if (user) {
-        const p = await getUserProfile(user.uid);
-        setProfile(p);
-      } else {
-        setProfile(null);
+        if (user) {
+          const p = await getUserProfile(user.uid);
+          setProfile(p);
+        } else {
+          setProfile(null);
+        }
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     });
 
-    return () => unsub();
+    return unsub;
   }, []);
 
   const register = async (
     email: string,
     password: string,
     name: string,
-    surname: string
-  ) => {
+    surname: string,
+  ): Promise<void> => {
     const res = await registerAuth(email, password);
 
-    const newProfile: UserProfile = {
+    await createUserProfile({
       uid: res.user.uid,
       email,
       name,
       surname,
-      role: "user"
-    };
-
-    await createUserProfile(newProfile);
-    setProfile(newProfile);
+      role: "user",
+    });
   };
 
-  const login = async (email: string, password: string) => {
-    await loginAuth(email, password);
-  };
+  const login = (email: string, password: string) => loginAuth(email, password);
 
-  const logout = async () => {
-    await logoutAuth();
-  };
+  const logout = () => logoutAuth();
 
   return {
     firebaseUser,
@@ -63,6 +58,6 @@ export const useAuth = () => {
     loading,
     register,
     login,
-    logout
+    logout,
   };
 };
