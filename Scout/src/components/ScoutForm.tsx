@@ -7,11 +7,12 @@ interface ScoutFormProps {
     onUpdate: (entry: ScoutEntry) => void;
     initialData?: ScoutEntry | null;
     onCancelEdit: () => void;
+    currentUser: string;
 }
 
-export const ScoutForm = ({ onAdd, onUpdate, initialData, onCancelEdit }: ScoutFormProps) => {
+export const ScoutForm = ({ onAdd, onUpdate, initialData, onCancelEdit, currentUser }: ScoutFormProps) => {
     const [formData, setFormData] = useState({
-        scoutName: initialData?.scoutName || '',
+        scoutName: initialData?.scoutName || currentUser,
         teamNumber: initialData?.teamNumber || '',
         matchNumber: initialData?.matchNumber || '',
         teamName: initialData?.teamName || '',
@@ -43,7 +44,7 @@ export const ScoutForm = ({ onAdd, onUpdate, initialData, onCancelEdit }: ScoutF
 
     const resetForm = () => {
         setFormData({
-            scoutName: '',
+            scoutName: currentUser,
             teamNumber: '',
             matchNumber: '',
             teamName: '',
@@ -88,13 +89,13 @@ export const ScoutForm = ({ onAdd, onUpdate, initialData, onCancelEdit }: ScoutF
                     <label className="form-label">Scout Name</label>
                     <input
                         type="text"
-                        className="form-control"
+                        className="form-control bg-light"
                         name="scoutName"
-                        placeholder="Adınız"
                         value={formData.scoutName}
-                        onChange={handleChange}
+                        readOnly
                         required
                     />
+                    <small className="text-muted">Giriş yapan kullanıcı: {currentUser}</small>
                 </div>
 
                 <div className="row">

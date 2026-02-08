@@ -4,6 +4,8 @@ import { ScoutForm } from './components/ScoutForm';
 import { ScoutList } from './components/ScoutList';
 import { TeamComparison } from './components/TeamComparison';
 import { Footer } from './components/Footer';
+import { Login } from './components/Login';
+import { Admin } from './Admin';
 import type { ScoutEntry } from './types';
 
 function App() {
@@ -15,6 +17,15 @@ function App() {
 
   // Tab management
   const [activeTab, setActiveTab] = useState<'scout' | 'compare'>('scout');
+
+  // Authentication state
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem('isLoggedIn') === 'true';
+  });
+  const [username, setUsername] = useState(() => {
+    return localStorage.getItem('username') || '';
+  });
+  const [showAdmin, setShowAdmin] = useState(false);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -33,6 +44,20 @@ function App() {
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
+  const handleLogin = (name: string) => {
+    setIsLoggedIn(true);
+    setUsername(name);
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('username', name);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUsername('');
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('username');
   };
 
   const [entries, setEntries] = useState<ScoutEntry[]>([
@@ -81,53 +106,84 @@ function App() {
 
   return (
     <>
-      <Navbar theme={theme} toggleTheme={toggleTheme} />
-      <div className="container mt-4">
-        {/* Tab Navigation */}
-        <ul className="nav nav-tabs mb-4">
-          <li className="nav-item">
-            <button
-              className={`nav-link ${activeTab === 'scout' ? 'active' : ''}`}
-              onClick={() => setActiveTab('scout')}
-            >
-              📝 Scout
-            </button>
-          </li>
-          <li className="nav-item">
-            <button
-              className={`nav-link ${activeTab === 'compare' ? 'active' : ''}`}
-              onClick={() => setActiveTab('compare')}
-            >
-              📊 Compare Teams
-            </button>
-          </li>
-        </ul>
+      <Navbar
+        theme={theme}
+        toggleTheme={toggleTheme}
+        isLoggedIn={isLoggedIn}
+        username={username}
+        onLogout={handleLogout}
+        isAdmin={isLoggedIn && username === 'admin'}
+        onAdminClick={() => setShowAdmin(true)}
+      />
 
-        {/* Tab Content */}
-        {activeTab === 'scout' ? (
-          <div className="row">
-            <div className="col-lg-4 mb-4">
-              <ScoutForm
-                key={editingEntry ? editingEntry.id : 'new-entry'}
-                onAdd={handleAddEntry}
-                onUpdate={handleUpdateEntry}
-                initialData={editingEntry}
-                onCancelEdit={handleCancelEdit}
-              />
-            </div>
-
-            <div className="col-lg-8">
-              <ScoutList
-                entries={entries}
-                onDelete={handleDeleteEntry}
-                onEdit={handleEditClick}
-              />
+      {!isLoggedIn ? (
+        <div className="container mt-5">
+          <div className="row justify-content-center">
+            <div className="col-md-6">
+              <Login onLogin={handleLogin} />
             </div>
           </div>
-        ) : (
-          <TeamComparison entries={entries} />
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="container mt-4">
+          {showAdmin ? (
+            <Admin
+              entries={entries}
+              onDeleteEntry={handleDeleteEntry}
+              onEditEntry={handleEditClick}
+              onClose={() => setShowAdmin(false)}
+            />
+          ) : (
+            <>
+              {/* Tab Navigation */}
+              <ul className="nav nav-tabs mb-4">
+                <li className="nav-item">
+                  <button
+                    className={`nav-link ${activeTab === 'scout' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('scout')}
+                  >
+                    📝 Scout
+                  </button>
+                </li>
+                <li className="nav-item">
+                  <button
+                    className={`nav-link ${activeTab === 'compare' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('compare')}
+                  >
+                    📊 Compare Teams
+                  </button>
+                </li>
+              </ul>
+
+              {/* Tab Content */}
+              {activeTab === 'scout' ? (
+                <div className="row">
+                  <div className="col-lg-4 mb-4">
+                    <ScoutForm
+                      key={editingEntry ? editingEntry.id : 'new-entry'}
+                      onAdd={handleAddEntry}
+                      onUpdate={handleUpdateEntry}
+                      initialData={editingEntry}
+                      onCancelEdit={handleCancelEdit}
+                      currentUser={username}
+                    />
+                  </div>
+
+                  <div className="col-lg-8">
+                    <ScoutList
+                      entries={username === 'admin' ? entries : entries.filter(e => e.scoutName === username)}
+                      onDelete={handleDeleteEntry}
+                      onEdit={handleEditClick}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <TeamComparison entries={username === 'admin' ? entries : entries.filter(e => e.scoutName === username)} />
+              )}
+            </>
+          )}
+        </div>
+      )}
       <Footer />
     </>
   );
