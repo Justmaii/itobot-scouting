@@ -9,6 +9,7 @@ export interface UserProfile {
 }
 
 export interface ScoutEntry {
+  id: string;
   scoutName: string;
   teamNumber: string;
   matchNumber: string;
@@ -17,7 +18,7 @@ export interface ScoutEntry {
   autonomousNotes: string;
   teleopNotes: string;
   generalNotes: string;
-  timestamp: string;
-  ownerUid: string;
-  date: Timestamp;
+  timestamp: string | Timestamp;
+  ownerUid?: string;
+  date: string | Timestamp;
 }

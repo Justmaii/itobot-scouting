@@ -14,12 +14,21 @@ export const useAuth = () => {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
+      setLoading(true);
       try {
         setFirebaseUser(user);
 
         if (user) {
-          const p = await getUserProfile(user.uid);
-          setProfile(p);
+          try {
+            const p = await getUserProfile(user.uid);
+            setProfile(p);
+          } catch (err: any) {
+            console.error("Profile fetch error:", err);
+            // If it's a permission error or other, we still want to know the user is logged in
+            // but we'll have a null profile which stays on Login page.
+            // Let's at least log it.
+            setProfile(null);
+          }
         } else {
           setProfile(null);
         }

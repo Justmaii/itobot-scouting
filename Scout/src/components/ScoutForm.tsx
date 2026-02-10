@@ -3,14 +3,15 @@ import type { ScoutEntry } from '../types';
 import { fetchTeamName } from '../api/tba';
 
 interface ScoutFormProps {
-    onAdd: (entry: ScoutEntry) => void;
-    onUpdate: (entry: ScoutEntry) => void;
+    onAdd: (entry: Omit<ScoutEntry, 'id'>) => Promise<string | void>;
+    onUpdate: (id: string, entry: Partial<ScoutEntry>) => Promise<void>;
     initialData?: ScoutEntry | null;
     onCancelEdit: () => void;
     currentUser: string;
 }
 
 export const ScoutForm = ({ onAdd, onUpdate, initialData, onCancelEdit, currentUser }: ScoutFormProps) => {
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         scoutName: initialData?.scoutName || currentUser,
         teamNumber: initialData?.teamNumber || '',
@@ -56,37 +57,40 @@ export const ScoutForm = ({ onAdd, onUpdate, initialData, onCancelEdit, currentU
         onCancelEdit();
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setIsSubmitting(true);
 
-        if (initialData) {
-            const updatedEntry: ScoutEntry = {
-                ...initialData,
-                ...formData,
-                driverSkill: Number(formData.driverSkill),
-                // Keep original timestamp
-            };
-            onUpdate(updatedEntry);
-        } else {
-            const now = new Date();
-            const newEntry: ScoutEntry = {
-                id: Date.now().toString(),
-                ...formData,
-                driverSkill: Number(formData.driverSkill),
-                timestamp: now.toLocaleTimeString(),
-                date: now.toLocaleDateString('tr-TR') // DD.MM.YYYY format for TR locale
-            };
-            onAdd(newEntry);
+        try {
+            if (initialData) {
+                await onUpdate(initialData.id, {
+                    ...formData,
+                    driverSkill: Number(formData.driverSkill)
+                });
+            } else {
+                const now = new Date();
+                await onAdd({
+                    ...formData,
+                    driverSkill: Number(formData.driverSkill),
+                    timestamp: now.toLocaleTimeString(),
+                    date: now.toLocaleDateString('tr-TR')
+                } as any); // Cast as any if there's minor mismatch with Omit<ScoutEntry, 'id'>
+            }
+            resetForm();
+        } catch (err) {
+            console.error(err);
+            alert("Kayıt sırasında bir hata oluştu.");
+        } finally {
+            setIsSubmitting(false);
         }
-        resetForm();
     };
 
     return (
         <div className="card p-4" >
-            <h3 className="mb-4 text-primary">{initialData ? 'Edit Entry' : 'New Entry'}</h3>
+            <h3 className="mb-4 text-primary">{initialData ? 'Girişi Düzenle' : 'Yeni Giriş'}</h3>
             <form onSubmit={handleSubmit}>
                 <div className="mb-3">
-                    <label className="form-label">Scout Name</label>
+                    <label className="form-label">Scout Adı</label>
                     <input
                         type="text"
                         className="form-control bg-light"
@@ -95,12 +99,12 @@ export const ScoutForm = ({ onAdd, onUpdate, initialData, onCancelEdit, currentU
                         readOnly
                         required
                     />
-                    <small className="text-muted">Giriş yapan kullanıcı: {currentUser}</small>
+                    <small className="text-muted">Giriş yapan: {currentUser}</small>
                 </div>
 
                 <div className="row">
                     <div className="col-6 mb-3">
-                        <label className="form-label">Team #</label>
+                        <label className="form-label">Takım #</label>
                         <input
                             type="number"
                             min="1"
@@ -187,8 +191,8 @@ export const ScoutForm = ({ onAdd, onUpdate, initialData, onCancelEdit, currentU
                 </div>
 
                 <div className="d-grid gap-2">
-                    <button type="submit" className="btn btn-primary btn-lg">
-                        {initialData ? 'Update Entry' : 'Save Entry'}
+                    <button type="submit" className="btn btn-primary btn-lg" disabled={isSubmitting}>
+                        {isSubmitting ? 'Kaydediliyor...' : (initialData ? 'Girişi Güncelle' : 'Girişi Kaydet')}
                     </button>
                     <button
                         type="button"
